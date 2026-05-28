@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Semáforo — Simulador</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <header>
+    <div class="dot"></div>
+    <div class="hdr-title">SISTEMA_SEMÁFORO</div>
+    <div class="hdr-badge">v1.0</div>
+    <div class="hdr-badge" style="margin-left:auto">FastAPI · Lógica Booleana</div>
+  </header>
+
+  <main>
+
+    <!-- ESQUERDA: Entradas -->
+    <div class="left-panel">
+      <div class="plabel">// entradas do sistema</div>
+
+      <div class="icard" id="card-VH" onclick="toggle('VH')">
+        <div class="icard-top">
+          <div class="icard-icon">🚗</div>
+          <div class="icard-meta">
+            <div class="icard-name">Veículo Horizontal</div>
+            <div class="icard-sub">VH · faixa FH</div>
+          </div>
+        </div>
+        <div class="toggle-wrap">
+          <span class="toggle-label">inativo</span>
+          <div class="tog" id="sw-VH"></div>
+        </div>
+      </div>
+
+      <div class="icard" id="card-VV" onclick="toggle('VV')">
+        <div class="icard-top">
+          <div class="icard-icon">🚙</div>
+          <div class="icard-meta">
+            <div class="icard-name">Veículo Vertical</div>
+            <div class="icard-sub">VV · faixa FV</div>
+          </div>
+        </div>
+        <div class="toggle-wrap">
+          <span class="toggle-label">inativo</span>
+          <div class="tog" id="sw-VV"></div>
+        </div>
+      </div>
+
+      <div class="icard" id="card-P" onclick="toggle('P')">
+        <div class="icard-top">
+          <div class="icard-icon">🚶</div>
+          <div class="icard-meta">
+            <div class="icard-name">Pedestre</div>
+            <div class="icard-sub">P · aguardando travessia</div>
+          </div>
+        </div>
+        <div class="toggle-wrap">
+          <span class="toggle-label">inativo</span>
+          <div class="tog" id="sw-P"></div>
+        </div>
+      </div>
+
+      <div class="plabel" style="margin-top:.25rem">// restrições</div>
+
+      <div class="info-block">
+        <div class="info-danger">¬(evh ∧ evv)</div>
+        <div style="margin-top:4px">verde H e V nunca<br>simultâneos</div>
+      </div>
+
+      <div class="info-block">
+        S = V ∪ FH ∪ FV ∪ P ∪ E<br>
+        F = FH ∪ FV · V ∩ P = ∅
+      </div>
+    </div>
+
+    <!-- CENTRO: Cruzamento -->
+    <div class="center-panel">
+      <div class="state-wrap">
+        <div class="state-tag">estado atual</div>
+        <div class="state-name idle" id="state-name">IDLE</div>
+        <div class="state-expr" id="state-expr">¬VH ∧ ¬VV ∧ ¬P</div>
+        <div class="state-desc" id="state-desc">Nenhuma entrada ativa. Sistema em espera.</div>
+      </div>
+
+      <div class="int-wrap" id="intersection">
+        <div class="road road-h"></div>
+        <div class="road road-v"></div>
+        <div class="road-center"></div>
+        <div class="mark mark-h"></div>
+        <div class="mark mark-v"></div>
+
+        <!-- Semáforos horizontais -->
+        <div class="sem sem-tl">
+          <div class="sl red" id="h1-r"></div>
+          <div class="sl" id="h1-y"></div>
+          <div class="sl" id="h1-g"></div>
+        </div>
+        <div class="sem sem-br">
+          <div class="sl red" id="h2-r"></div>
+          <div class="sl" id="h2-y"></div>
+          <div class="sl" id="h2-g"></div>
+        </div>
+
+        <!-- Semáforos verticais -->
+        <div class="sem sem-tr">
+          <div class="sl red" id="v1-r"></div>
+          <div class="sl" id="v1-y"></div>
+          <div class="sl" id="v1-g"></div>
+        </div>
+        <div class="sem sem-bl">
+          <div class="sl red" id="v2-r"></div>
+          <div class="sl" id="v2-y"></div>
+          <div class="sl" id="v2-g"></div>
+        </div>
+
+        <!-- Semáforos de pedestre -->
+        <div class="psem psem-l">
+          <div class="pl red" id="p1-r"></div>
+          <div class="pl" id="p1-g"></div>
+        </div>
+        <div class="psem psem-r">
+          <div class="pl red" id="p2-r"></div>
+          <div class="pl" id="p2-g"></div>
+        </div>
+
+        <!-- Carros animados -->
+        <div class="car" id="car-h" style="top:50%;left:-30px;transform:translateY(-50%)">🚗</div>
+        <div class="car" id="car-v" style="left:50%;top:-30px;transform:translateX(-50%) rotate(90deg)">🚗</div>
+        <div class="car" id="car-p" style="left:4px;top:50%;transform:translateY(-50%) rotate(90deg);font-size:13px;opacity:0">🚶</div>
+      </div>
+
+      <div class="req-bar" id="req-display">
+        <span class="m">POST</span> /avaliar · <span>{"VH":false,"VV":false,"P":false}</span>
+      </div>
+    </div>
+
+    <!-- DIREITA: Saída -->
+    <div class="right-panel">
+      <div class="plabel">// saída do sistema</div>
+
+      <div class="plabel" style="border:none;padding:0">bits ativos</div>
+      <div class="bits-grid" id="bits-grid"></div>
+
+      <div class="plabel" style="border:none;padding:0">tabela verdade</div>
+      <table class="ttable" id="truth-table">
+        <thead>
+          <tr>
+            <th>Estado</th><th>evh</th><th>eah</th><th>emh</th>
+            <th>evv</th><th>eav</th><th>emv</th><th>epv</th><th>epm</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div class="plabel" style="border:none;padding:0">log de chamadas</div>
+      <div class="log-list" id="log-list"></div>
+    </div>
+
+  </main>
+
+  <footer>
+    <div>Backend: <span>FastAPI · Python</span></div>
+    <div>Endpoint: <span>POST /avaliar</span></div>
+    <div>Regras: <span>5 estados válidos</span></div>
+    <div>Segurança: <span>¬(evh∧evv)</span></div>
+  </footer>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
