@@ -67,6 +67,22 @@ def avaliar(VH: bool, VV: bool, P: bool) -> Resultado:
 
     # Regra de segurança: ¬(evh ∧ evv) garantida estruturalmente
 
+    # Prioridade de segurança: P ∧ (VH ∨ VV)  →  eah / eav (retenção)
+    if P:
+        if VH or VV:
+            estado = "EAH" if VH else "EAV"
+            via = "horizontal" if VH else "vertical"
+            return Resultado(
+                estado_ativo=f"{estado} → aguardando EPV",
+                descricao=f"Pedestre aguarda fim do fluxo {via}.",
+                expressao_logica=f"P ∧ V{'H' if VH else 'V'}  →  aguarda epv",
+                bits=TABELA_VERDADE[estado],
+                conflito=False,
+                semaforo_h="yellow" if VH else "red",
+                semaforo_v="yellow" if VV else "red",
+                semaforo_p="red",
+            )
+
     # Libera horizontal: VH ∧ ¬VV
     if VH and not VV:
         return Resultado(
