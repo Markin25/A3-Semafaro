@@ -273,6 +273,7 @@ main {
   position: relative;
   width: 260px;
   height: 260px;
+  overflow: hidden;
   filter: drop-shadow(0 0 30px rgba(0,0,0,.5));
   z-index: 1;
 }
@@ -334,8 +335,8 @@ main {
   width: 16px;
 }
 
-.psem-l { top: 50%; left: 1px; transform: translateY(-50%); }
-.psem-r { top: 50%; right: 1px; transform: translateY(-50%); }
+.psem-l { left: 72px; top: 222px; }
+.psem-r { left: 172px; top: 222px; }
 
 .pl {
   width: 10px;
@@ -360,10 +361,39 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 20px;
   line-height: 1;
-  transition: transform .6s ease, opacity .3s, top .6s ease, left .6s ease;
+  /* sem transition em left/top — evita slide-back visual */
+  transition: opacity .25s;
 }
+
+/* Carro H atravessa da esquerda para a direita */
+@keyframes drive-h {
+  0%   { left: 60px;  opacity: 1; }
+  72%  { left: 225px; opacity: 1; }
+  90%  { left: 290px; opacity: 0; }
+  100% { left: 290px; opacity: 0; }
+}
+
+/* Carro V desce do topo para baixo */
+@keyframes drive-v {
+  0%   { top: 60px;   opacity: 1; }
+  72%  { top: 225px;  opacity: 1; }
+  90%  { top: 290px;  opacity: 0; }
+  100% { top: 290px;  opacity: 0; }
+}
+
+/* Pedestre cruza da esquerda para a direita na faixa inferior */
+@keyframes walk-p {
+  0%   { left: 35px;  opacity: 1; }
+  72%  { left: 195px; opacity: 1; }
+  90%  { left: 240px; opacity: 0; }
+  100% { left: 240px; opacity: 0; }
+}
+
+.car.drive-h { animation: drive-h 1.4s ease-in-out forwards; }
+.car.drive-v { animation: drive-v 1.4s ease-in-out forwards; }
+.car.walk-p  { animation: walk-p  1.4s ease-in-out forwards; }
 
 /* ── Request bar ── */
 

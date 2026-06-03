@@ -50,37 +50,59 @@ function animateCars(h, v, p) {
   const cv = document.getElementById('car-v');
   const cp = document.getElementById('car-p');
 
-  // Carro horizontal
-  if (h === 'green') {
-    ch.style.opacity = '1';
-    ch.style.left = '200px';
-    ch.style.transform = 'translateY(-50%)';
-    setTimeout(() => { ch.style.left = '-30px'; }, 1800);
+  // ─── Carro Horizontal ───
+  // Fica na lane horizontal (top:50%), aguarda a esquerda antes da faixa vertical
+  ch.style.top       = '50%';
+  ch.style.transform = 'translateY(-50%)';
+
+  if (h === 'green' && inputs.VH) {
+    // Inicia animação de travessia (da esquerda para a direita)
+    if (!ch.classList.contains('drive-h')) {
+      ch.style.left    = '60px';
+      ch.style.opacity = '1';
+      void ch.offsetWidth;          // força reflow para reset de animação
+      ch.classList.add('drive-h');
+    }
   } else {
-    ch.style.left = inputs.VH ? '60px' : '-30px';
-    ch.style.opacity = inputs.VH ? '1' : '0';
-    ch.style.transform = 'translateY(-50%)';
+    ch.classList.remove('drive-h');
+    ch.style.left    = inputs.VH ? '60px' : '-30px';
+    ch.style.opacity = inputs.VH ? '1'    : '0';
   }
 
-  // Carro vertical
-  if (v === 'green') {
-    cv.style.opacity = '1';
-    cv.style.top = '200px';
-    cv.style.transform = 'translateX(-50%) rotate(90deg)';
-    setTimeout(() => { cv.style.top = '-30px'; }, 1800);
+  // ─── Carro Vertical ───
+  // Fica na lane vertical (left:50%), aguarda acima antes da faixa horizontal
+  cv.style.left      = '50%';
+  cv.style.transform = 'translateX(-50%) rotate(90deg)';
+
+  if (v === 'green' && inputs.VV) {
+    if (!cv.classList.contains('drive-v')) {
+      cv.style.top     = '60px';
+      cv.style.opacity = '1';
+      void cv.offsetWidth;
+      cv.classList.add('drive-v');
+    }
   } else {
-    cv.style.top = inputs.VV ? '60px' : '-30px';
-    cv.style.opacity = inputs.VV ? '1' : '0';
-    cv.style.transform = 'translateX(-50%) rotate(90deg)';
+    cv.classList.remove('drive-v');
+    cv.style.top     = inputs.VV ? '60px' : '-30px';
+    cv.style.opacity = inputs.VV ? '1'    : '0';
   }
 
-  // Pedestre
-  cp.style.opacity = inputs.P ? '1' : '0';
-  if (p === 'green') {
-    cp.style.top = '200px';
-    setTimeout(() => { cp.style.top = '50%'; }, 1500);
+  // ─── Pedestre ───
+  // Fica na parte inferior do cruzamento (top:225px), cruza a faixa vertical da esq→dir
+  cp.style.top       = '225px';
+  cp.style.transform = 'none';
+
+  if (p === 'green' && inputs.P) {
+    if (!cp.classList.contains('walk-p')) {
+      cp.style.left    = '35px';
+      cp.style.opacity = '1';
+      void cp.offsetWidth;
+      cp.classList.add('walk-p');
+    }
   } else {
-    cp.style.top = '50%';
+    cp.classList.remove('walk-p');
+    cp.style.left    = inputs.P ? '35px' : '-30px';
+    cp.style.opacity = inputs.P ? '1'    : '0';
   }
 }
 
