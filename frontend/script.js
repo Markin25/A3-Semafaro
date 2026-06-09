@@ -1,13 +1,13 @@
 const API = 'http://localhost:8000';
 const inputs = { VH: false, VV: false, P: false };
-const BITS = ['evh', 'eah', 'emh', 'evv', 'eav', 'emv', 'epv', 'epm'];
+const BITS = ['evh', 'eah', 'emh', 'evv', 'eav', 'emv', 'ep', 'epm'];
 
 const TRUTH = {
   EVH: [1, 0, 0, 0, 0, 1, 0, 1],
   EAH: [0, 1, 0, 0, 0, 1, 0, 1],
   EVV: [0, 0, 1, 1, 0, 0, 0, 1],
   EAV: [0, 0, 1, 0, 1, 0, 0, 1],
-  EPV: [0, 0, 1, 0, 0, 1, 1, 0],
+  EP: [0, 0, 1, 0, 0, 1, 1, 0],
 };
 
 // ── UI ───────────────────────────────────────────────
@@ -141,42 +141,49 @@ function runLocal({ VH, VV, P }) {
 
   if (VH && !VV) {
     estado = 'EVH';
-    desc   = 'Horizontal livre. Via vertical bloqueada.';
+    desc   = 'Elemento Veículo Horizontal (EVH) ativo: semáforo horizontal verde, via vertical bloqueada.';
     expr   = 'VH ∧ ¬VV → evh';
     h = 'green';
     bits.evh = 1; bits.emv = 1; bits.epm = 1;
 
   } else if (VV && !VH) {
     estado = 'EVV';
-    desc   = 'Vertical livre. Via horizontal bloqueada.';
+    desc   = 'Elemento Veículo Vertical (EVV) ativo: semáforo vertical verde, via horizontal bloqueada.';
     expr   = 'VV ∧ ¬VH → evv';
     v = 'green';
     bits.emh = 1; bits.evv = 1; bits.epm = 1;
 
   } else if (P && !VH && !VV) {
-    estado = 'EPV';
-    desc   = 'Sem veículos. Pedestre pode atravessar.';
-    expr   = 'P ∧ ¬VH ∧ ¬VV → epv';
+    estado = 'EP';
+    desc   = 'Elemento Pedestre (EP) Verde ativo: sem veículos, pedestre autorizado a atravessar.';
+    expr   = 'P ∧ ¬VH ∧ ¬VV → ep';
     p = 'green';
-    bits.emh = 1; bits.emv = 1; bits.epv = 1;
+    bits.emh = 1; bits.emv = 1; bits.ep = 1;
+
+  } else if (VH && VV && P) {
+    estado = 'CONFLITO TOTAL';
+    desc   = 'Conflito total: Elemento Amarelo Horizontal (EAH) + Elemento Amarelo Vertical (EAV) + Elemento Pedestre (EP) aguardando. Todos retidos.';
+    expr   = 'VH ∧ VV ∧ P → eah, eav (conflito total)';
+    h = 'yellow'; v = 'yellow';
+    bits.eah = 1; bits.eav = 1; bits.epm = 1;
 
   } else if (VH && VV) {
     estado = 'CONFLITO';
-    desc   = 'Fase de transição amarela.';
+    desc   = 'Conflito: Elemento Amarelo Horizontal (EAH) + Elemento Amarelo Vertical (EAV). Fase de transição.';
     expr   = 'VH ∧ VV → eah, eav';
     h = 'yellow'; v = 'yellow';
     bits.eah = 1; bits.eav = 1; bits.epm = 1;
 
   } else if (P && (VH || VV)) {
-    estado = VH ? 'EAH→EPV' : 'EAV→EPV';
-    desc   = 'Pedestre aguarda fim do fluxo.';
-    expr   = `P ∧ V${VH ? 'H' : 'V'} → aguarda epv`;
+    estado = VH ? 'EAH→EP' : 'EAV→EP';
+    desc   = `Elemento Amarelo ${VH ? 'Horizontal (EAH)' : 'Vertical (EAV)'} ativo. Pedestre aguarda fim do fluxo ${VH ? 'horizontal' : 'vertical'}.`;
+    expr   = `P ∧ V${VH ? 'H' : 'V'} → aguarda ep`;
     if (VH) h = 'yellow';
     if (VV) v = 'yellow';
 
   } else {
     estado = 'IDLE';
-    desc   = 'Nenhuma entrada ativa. Sistema em espera.';
+    desc   = 'Nenhuma entrada ativa. Elementos de retenção (EMH, EMV, EP Vermelho) ativos. Sistema em espera.';
     expr   = '¬VH ∧ ¬VV ∧ ¬P';
     bits.emh = 1; bits.emv = 1; bits.epm = 1;
   }
