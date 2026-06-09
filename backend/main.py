@@ -13,9 +13,9 @@ app.add_middleware(
 )
 
 
-# ─────────────────────────────────────────────
+
 # Conjuntos numéricos (modelagem do documento)
-# ─────────────────────────────────────────────
+
 
 class EstadoSemaforo(str, Enum):
     EVH = "evh"   # Verde Horizontal
@@ -24,23 +24,23 @@ class EstadoSemaforo(str, Enum):
     EVV = "evv"   # Verde Vertical
     EAV = "eav"   # Amarelo Vertical
     EMV = "emv"   # Vermelho Vertical
-    EPV = "epv"   # Pedestre Verde
+    EP  = "ep"    # Pedestre Verde
     EPM = "epm"   # Pedestre Vermelho
 
 
 # Tabela verdade conforme documento
 TABELA_VERDADE = {
-    "EVH": {"evh":1,"eah":0,"emh":0,"evv":0,"eav":0,"emv":1,"epv":0,"epm":1},
-    "EAH": {"evh":0,"eah":1,"emh":0,"evv":0,"eav":0,"emv":1,"epv":0,"epm":1},
-    "EVV": {"evh":0,"eah":0,"emh":1,"evv":1,"eav":0,"emv":0,"epv":0,"epm":1},
-    "EAV": {"evh":0,"eah":0,"emh":1,"evv":0,"eav":1,"emv":0,"epv":0,"epm":1},
-    "EPV": {"evh":0,"eah":0,"emh":1,"evv":0,"eav":0,"emv":1,"epv":1,"epm":0},
+    "EVH": {"evh":1,"eah":0,"emh":0,"evv":0,"eav":0,"emv":1,"ep":0,"epm":1},
+    "EAH": {"evh":0,"eah":1,"emh":0,"evv":0,"eav":0,"emv":1,"ep":0,"epm":1},
+    "EVV": {"evh":0,"eah":0,"emh":1,"evv":1,"eav":0,"emv":0,"ep":0,"epm":1},
+    "EAV": {"evh":0,"eah":0,"emh":1,"evv":0,"eav":1,"emv":0,"ep":0,"epm":1},
+    "EP":  {"evh":0,"eah":0,"emh":1,"evv":0,"eav":0,"emv":1,"ep":1, "epm":0},
 }
 
 
-# ─────────────────────────────────────────────
+
 # Modelos de entrada/saída
-# ─────────────────────────────────────────────
+
 
 class Entradas(BaseModel):
     VH: bool = False  # Veículo horizontal
@@ -59,13 +59,27 @@ class Resultado(BaseModel):
     semaforo_p: str   # red | green
 
 
-# ─────────────────────────────────────────────
+
 # Motor de regras lógicas (conforme documento)
-# ─────────────────────────────────────────────
+
 
 def avaliar(VH: bool, VV: bool, P: bool) -> Resultado:
 
     # Regra de segurança: ¬(evh ∧ evv) garantida estruturalmente
+
+    # Conflito total: VH ∧ VV ∧ P
+    if P and VH and VV:
+        bits_conflito_total = {"evh":0,"eah":1,"emh":0,"evv":0,"eav":1,"emv":0,"ep":0,"epm":1}
+        return Resultado(
+            estado_ativo="CONFLITO TOTAL (EAH + EAV + EP)",
+            descricao="Conflito total: Elemento Amarelo Horizontal (EAH) + Elemento Amarelo Vertical (EAV) + Elemento Pedestre (EP) aguardando. Todos retidos.",
+            expressao_logica="VH ∧ VV ∧ P  →  eah, eav (conflito total)",
+            bits=bits_conflito_total,
+            conflito=True,
+            semaforo_h="yellow",
+            semaforo_v="yellow",
+            semaforo_p="red",
+        )
 
     # Prioridade de segurança: P ∧ (VH ∨ VV)  →  eah / eav (retenção)
     if P:
@@ -73,9 +87,9 @@ def avaliar(VH: bool, VV: bool, P: bool) -> Resultado:
             estado = "EAH" if VH else "EAV"
             via = "horizontal" if VH else "vertical"
             return Resultado(
-                estado_ativo=f"{estado} → aguardando EPV",
-                descricao=f"Pedestre aguarda fim do fluxo {via}.",
-                expressao_logica=f"P ∧ V{'H' if VH else 'V'}  →  aguarda epv",
+                estado_ativo=f"{estado} → aguardando EP Verde",
+                descricao=f"Elemento Amarelo {'Horizontal (EAH)' if VH else 'Vertical (EAV)'} ativo. Pedestre aguarda fim do fluxo {via}.",
+                expressao_logica=f"P ∧ V{'H' if VH else 'V'}  →  aguarda ep",
                 bits=TABELA_VERDADE[estado],
                 conflito=False,
                 semaforo_h="yellow" if VH else "red",
@@ -87,7 +101,7 @@ def avaliar(VH: bool, VV: bool, P: bool) -> Resultado:
     if VH and not VV:
         return Resultado(
             estado_ativo="EVH",
-            descricao="Horizontal livre. Via vertical bloqueada.",
+            descricao="Elemento Veículo Horizontal (EVH) ativo: semáforo horizontal verde, via vertical bloqueada.",
             expressao_logica="VH ∧ ¬VV  →  evh",
             bits=TABELA_VERDADE["EVH"],
             conflito=False,
@@ -100,7 +114,7 @@ def avaliar(VH: bool, VV: bool, P: bool) -> Resultado:
     if VV and not VH:
         return Resultado(
             estado_ativo="EVV",
-            descricao="Vertical livre. Via horizontal bloqueada.",
+            descricao="Elemento Veículo Vertical (EVV) ativo: semáforo vertical verde, via horizontal bloqueada.",
             expressao_logica="VV ∧ ¬VH  →  evv",
             bits=TABELA_VERDADE["EVV"],
             conflito=False,
@@ -112,10 +126,10 @@ def avaliar(VH: bool, VV: bool, P: bool) -> Resultado:
     # Travessia de pedestre: P ∧ ¬VH ∧ ¬VV
     if P and not VH and not VV:
         return Resultado(
-            estado_ativo="EPV",
-            descricao="Sem veículos. Pedestre pode atravessar.",
-            expressao_logica="P ∧ ¬VH ∧ ¬VV  →  epv",
-            bits=TABELA_VERDADE["EPV"],
+            estado_ativo="EP",
+            descricao="Elemento Pedestre (EP) Verde ativo: sem veículos, pedestre autorizado a atravessar.",
+            expressao_logica="P ∧ ¬VH ∧ ¬VV  →  ep",
+            bits=TABELA_VERDADE["EP"],
             conflito=False,
             semaforo_h="red",
             semaforo_v="red",
@@ -124,10 +138,10 @@ def avaliar(VH: bool, VV: bool, P: bool) -> Resultado:
 
     # Conflito entre vias: VH ∧ VV
     if VH and VV:
-        bits_conflito = {"evh":0,"eah":1,"emh":0,"evv":0,"eav":1,"emv":0,"epv":0,"epm":1}
+        bits_conflito = {"evh":0,"eah":1,"emh":0,"evv":0,"eav":1,"emv":0,"ep":0,"epm":1}
         return Resultado(
             estado_ativo="CONFLITO (EAH + EAV)",
-            descricao="Veículos nas duas vias. Fase de transição amarela.",
+            descricao="Conflito: Elemento Amarelo Horizontal (EAH) + Elemento Amarelo Vertical (EAV). Fase de transição.",
             expressao_logica="VH ∧ VV  →  eah, eav (transição)",
             bits=bits_conflito,
             conflito=True,
@@ -141,9 +155,9 @@ def avaliar(VH: bool, VV: bool, P: bool) -> Resultado:
         estado = "EAH" if VH else "EAV"
         via = "horizontal" if VH else "vertical"
         return Resultado(
-            estado_ativo=f"{estado} → aguardando EPV",
-            descricao=f"Pedestre aguarda fim do fluxo {via}.",
-            expressao_logica=f"P ∧ V{'H' if VH else 'V'}  →  aguarda epv",
+            estado_ativo=f"{estado} → aguardando EP",
+            descricao=f"Elemento Amarelo {'Horizontal (EAH)' if VH else 'Vertical (EAV)'} ativo. Pedestre aguarda fim do fluxo {via}.",
+            expressao_logica=f"P ∧ V{'H' if VH else 'V'}  →  aguarda ep",
             bits=TABELA_VERDADE[estado],
             conflito=False,
             semaforo_h="yellow" if VH else "red",
@@ -152,13 +166,13 @@ def avaliar(VH: bool, VV: bool, P: bool) -> Resultado:
         )
 
     # Nenhuma entrada ativa
-    bits_idle = {k: 0 for k in ["evh","eah","emh","evv","eav","emv","epv","epm"]}
+    bits_idle = {k: 0 for k in ["evh","eah","emh","evv","eav","emv","ep","epm"]}
     bits_idle["emh"] = 1
     bits_idle["emv"] = 1
     bits_idle["epm"] = 1
     return Resultado(
         estado_ativo="IDLE",
-        descricao="Nenhuma entrada ativa. Sistema em espera.",
+        descricao="Nenhuma entrada ativa. Elementos de retenção (EMH, EMV, EP Vermelho) ativos. Sistema em espera.",
         expressao_logica="¬VH ∧ ¬VV ∧ ¬P",
         bits=bits_idle,
         conflito=False,
@@ -168,9 +182,9 @@ def avaliar(VH: bool, VV: bool, P: bool) -> Resultado:
     )
 
 
-# ─────────────────────────────────────────────
+
 # Endpoints
-# ─────────────────────────────────────────────
+
 
 @app.get("/")
 def raiz():
